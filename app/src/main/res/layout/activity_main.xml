@@ -5,12 +5,38 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    tools:ignore="ExtraText">
 
+    <TextView
+        android:id="@+id/txtHello"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="30dp"
+        android:text="hello"
+        android:textSize="30dp" />
 
+    <TextView
+        android:id="@+id/stepCountTextView"
+        android:layout_width="208dp"
+        android:layout_height="wrap_content"
+        android:paddingLeft="10dp"
+        android:text="0"
+        android:textSize="30sp" />
 
+    <com.github.mikephil.charting.charts.BarChart
+        android:id="@+id/barChart"
+        android:layout_width="match_parent"
+        android:layout_height="488dp" />
 
+    <Button
+        android:id="@+id/btn_start_stop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:paddingTop="30dp"
+        android:text="Start" />
 
 
 </LinearLayout>

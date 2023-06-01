@@ -4,8 +4,10 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
 
     <application
         android:allowBackup="true"
@@ -16,10 +18,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.StepsApp"
         tools:targetApi="31">
+        <service
+            android:name=".ForegroundService"
+            android:enabled="true"
+            android:exported="true"></service>
+
         <receiver
             android:name=".NotificationReceiver"
             android:enabled="true"
-            android:exported="true"></receiver>
+            android:exported="true" />
 
         <activity
             android:name=".SettingActivity"

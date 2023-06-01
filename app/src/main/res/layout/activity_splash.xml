@@ -5,17 +5,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#E9F1E9"
     android:orientation="vertical"
     tools:context=".SplashActivity">
 
     <ImageView
-        android:id="@+id/imageView3"
+        android:id="@+id/imageView"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_marginTop="200dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        app:srcCompat="@drawable/baseline_run_circle_24" />
+        app:srcCompat="@drawable/logo" />
 
     <TextView
         android:id="@+id/textView"
@@ -28,7 +26,7 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/txtSetting"
         android:layout_width="match_parent"
         android:layout_height="9dp"
         android:layout_weight="1"
