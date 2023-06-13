@@ -20,7 +20,7 @@
     <TextView
         android:id="@+id/stepCountTextView"
         android:layout_width="208dp"
-        android:layout_height="wrap_content"
+        android:layout_height="69dp"
         android:paddingLeft="10dp"
         android:text="0"
         android:textSize="30sp" />
@@ -28,7 +28,7 @@
     <com.github.mikephil.charting.charts.BarChart
         android:id="@+id/barChart"
         android:layout_width="match_parent"
-        android:layout_height="488dp" />
+        android:layout_height="357dp" />
 
     <Button
         android:id="@+id/btn_start_stop"

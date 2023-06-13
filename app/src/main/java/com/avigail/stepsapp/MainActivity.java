@@ -14,6 +14,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,9 +38,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -47,26 +51,21 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import java.util.Calendar;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
-    private SensorManager sensorManager;
+
+public class MainActivity extends AppCompatActivity{
     private TextView stepCountTextView, txtHello;
-    private int stepCount = 0;
-    private boolean isStepCounting = false;
-    private float threshold = 0.5f;
-    private float diff = 0;
-    private float positiveThreshold = 0.8f;
-    private float negativeThreshold = -0.8f;
-    private float previousY = 0.0f;
+    private int stepCount;
 
-    String counter;
-    private boolean hasPositiveToNegativeTransition = false;
-    private boolean hasNegativeToPositiveTransition = false;
     private Button startStopButton;
 
-//    int[] steps_day = {1000, 2000, 1500, 3000, 2500, 1800, 2200};
-    int dayOfWeek;
-    int steps_day[] = new int[7];
+
+    int steps_day[]= new int[7];
+
+    Calendar calendar = Calendar.getInstance();
+    int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,39 +76,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         String name = sharedPreferences.getString("nameKey", " ");
         txtHello.setText("hello "+ name);
-//        notfitication();
-        Calendar calendar = Calendar.getInstance();
-        dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+        String minSteps = sharedPreferences.getString("minStepsKey", " ");
+//        NotificationReceiver.setNotification(getApplicationContext());
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        DocumentReference docRef = db.collection("steps").document("week");
-        docRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                if (task.isSuccessful()) {
-                    DocumentSnapshot document = task.getResult();
-                    if (document.exists()) {
-                        // Document exists, retrieve the array
-                        List<Object> stepsArray = (List<Object>) document.get("steps_day");
-                        // Use the retrieved array as needed
-                        // ...
-                        for (int i = 0; i < stepsArray.size(); i++) {
-                            steps_day[i] = ((Long) stepsArray.get(i)).intValue();
-                        }
-                        Log.d("mylog", "Steps array: " + stepsArray);
-                    } else {
-                        // Document does not exist
-                        Log.d("mylog", "No such document");
-                    }
-                } else {
-                    // An error occurred while fetching the document
-                    Log.d(TAG, "Error getting document: " + task.getException());
-                }
-            }
-        });
 
-        init_steps(dayOfWeek);
-        insertData();
         startStopButton = findViewById(R.id.btn_start_stop);
 
         startStopButton.setOnClickListener(new View.OnClickListener() {
@@ -146,14 +116,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //                    }
 //                });
 
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        Sensor accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
-        if (accelerometerSensor != null) {
-            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        } else {
-            Toast.makeText(this, "Accelerometer sensor not available", Toast.LENGTH_SHORT).show();
-        }
+//        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+//        Sensor accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+//
+//        if (accelerometerSensor != null) {
+//            sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
+//        } else {
+//            Toast.makeText(this, "Accelerometer sensor not available", Toast.LENGTH_SHORT).show();
+//        }
     }
 
     private boolean isServiceRunning() {
@@ -174,10 +145,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         serviceIntent.setAction("stop");
         startService(serviceIntent);
     }
-    private void insertData(){
+
+    private void bringData(){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference docRef = db.collection("steps").document("week");
+        docRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if (task.isSuccessful()) {
+                    DocumentSnapshot document = task.getResult();
+                    if (document.exists()) {
+                        List<Long> stepsArray = (List<Long>) document.get("steps_day");
+                        for (int i = 0; i < stepsArray.size(); i++) {
+                            steps_day[i] = ((Long) stepsArray.get(i)).intValue();
+                        }
+                        Log.d("mylog", "Steps array: " + stepsArray);
+                        init_steps(dayOfWeek);
+                    } else {
+                        Log.d("mylog", "No such document");
+                    }
+                } else {
+                    Log.d(TAG, "Error getting document: " + task.getException());
+                }
+            }
+
+        });
+    }
+    private void insertData() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         Map<String, Object> steps = new HashMap<>();
-        steps.put("steps_day", Arrays.asList(steps_day[0],steps_day[1],steps_day[2],steps_day[3],steps_day[4],steps_day[5],steps_day[6]));
+        steps.put("steps_day", Arrays.asList(steps_day[0], steps_day[1], steps_day[2], steps_day[3], steps_day[4], steps_day[5], steps_day[6]));
+
         db.collection("steps").document("week")
                 .set(steps)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -192,6 +189,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         Log.w(TAG, "Error writing document", e);
                     }
                 });
+    }
+    private void bring_barChart(){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("steps").document("week")
                 .get()
                 .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
@@ -217,33 +217,44 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                 });
     }
+
     private void init_steps(int dayOfWeek){
+
+        Log.d("mylog", "I am in init");
         switch (dayOfWeek) {
             case Calendar.SUNDAY:
                 stepCountTextView.setText(""+ steps_day[0]);
+                stepCount = steps_day[0];
                 break;
             case Calendar.MONDAY:
                 stepCountTextView.setText(""+ steps_day[1]);
+                stepCount = steps_day[1];
                 break;
             case Calendar.TUESDAY:
                 stepCountTextView.setText(""+ steps_day[2]);
+                stepCount = steps_day[2];
                 break;
             case Calendar.WEDNESDAY:
                 stepCountTextView.setText(""+ steps_day[3]);
+                stepCount = steps_day[3];
                 break;
             case Calendar.THURSDAY:
                 stepCountTextView.setText(""+ steps_day[4]);
+                stepCount = steps_day[4];
                 break;
             case Calendar.FRIDAY:
                 stepCountTextView.setText(""+ steps_day[5]);
+                stepCount = steps_day[5];
                 break;
             case Calendar.SATURDAY:
                 stepCountTextView.setText(""+ steps_day[6]);
+                stepCount = steps_day[6];
                 break;
         }
     }
     private void update_steps(int dayOfWeek){
         String count= stepCountTextView.getText().toString();
+        count = count.trim();
         switch (dayOfWeek) {
             case Calendar.SUNDAY:
                 steps_day[0] = Integer.parseInt(count);
@@ -256,7 +267,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 break;
             case Calendar.WEDNESDAY:
                 steps_day[3] = Integer.parseInt(count);
-//                stepCountTextView.setText(""+ steps_day[3]);
                 break;
             case Calendar.THURSDAY:
                 steps_day[4] = Integer.parseInt(count);
@@ -270,7 +280,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-
     private void createBarChart(List<Integer> values) {
         // Use your preferred chart library to create the bar chart
         // Here, you can use MPAndroidChart or any other chart library of your choice
@@ -280,91 +289,57 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         BarChart barChart = findViewById(R.id.barChart);
 
         List<BarEntry> entries = new ArrayList<>();
+        String[] daysOfWeek = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+
         for (int i = 0; i < values.size(); i++) {
             entries.add(new BarEntry(i, values.get(i)));
         }
 
         BarDataSet dataSet = new BarDataSet(entries, "Steps");
         BarData barData = new BarData(dataSet);
+
+        // Set days of the week as initial title
+        barChart.getDescription().setText(" ");
+
+        // Set x-axis labels as days of the week
+        XAxis xAxis = barChart.getXAxis();
+        xAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                int index = (int) value;
+                if (index >= 0 && index < daysOfWeek.length) {
+                    return daysOfWeek[index];
+                }
+                return "";
+            }
+        });
+
+        // Increase headers on the side (y-axis)
+        YAxis yAxisLeft = barChart.getAxisLeft();
+        YAxis yAxisRight = barChart.getAxisRight();
+        yAxisLeft.setTextSize(12f);
+        yAxisRight.setTextSize(12f);
+
+        // Increase headers above (x-axis)
+        xAxis.setTextSize(12f);
+
+        // Increase numbers above each column
+        dataSet.setValueTextSize(12f);
+
+        yAxisLeft.setAxisLineColor(Color.TRANSPARENT);
+        yAxisLeft.setAxisLineWidth(0f);
+        yAxisLeft.setGridColor(Color.TRANSPARENT);
+
+        yAxisRight.setAxisLineColor(Color.TRANSPARENT);
+        yAxisRight.setAxisLineWidth(0f);
+        yAxisRight.setGridColor(Color.TRANSPARENT);
+
+        xAxis.setAxisLineColor(Color.TRANSPARENT);
+        xAxis.setAxisLineWidth(0f);
+        xAxis.setGridColor(Color.TRANSPARENT);
         barChart.setData(barData);
         barChart.invalidate(); // Refresh the chart
     }
-
-
-    public void notfitication(){
-        Calendar calendar = Calendar.getInstance();
-//        calendar.setTimeInMillis(System.currentTimeMillis());
-        calendar.set(Calendar.HOUR_OF_DAY, 8);
-        calendar.set(Calendar.MINUTE, 56);
-        calendar.set(Calendar.SECOND, 0);
-
-        Intent intent = new Intent(this, NotificationReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-    }
-    public void onSensorChanged(SensorEvent event) {
-
-        float yAcceleration = event.values[1];
-
-
-        if (!isStepCounting) {
-            previousY = yAcceleration;
-            isStepCounting = true;
-        }
-        //Log.d("mylog", "yAcceleration= " + String.valueOf(yAcceleration));
-       // Log.d("mylog" , "previousY= " + String.valueOf(previousY));
-        diff = yAcceleration - previousY;
-        Log.d("mylog" , "diff= " + String.valueOf(diff));
-//        if (Math.abs(diff) > threshold) {
-//            if (yAcceleration > previousY && yAcceleration > positiveThreshold) {
-//                stepCount++;
-//                stepCountTextView.setText("Step count: " + stepCount);
-//            } else if (yAcceleration < previousY && yAcceleration < negativeThreshold) {
-//                stepCount++;
-//                stepCountTextView.setText("Step count: " + stepCount);
-//            }
-//            stepCount++;
-//            stepCountTextView.setText("Step count: " + stepCount);
-//        }
-
-        if (Math.abs(diff) > threshold) {
-            if (diff > 0) {
-                if (hasNegativeToPositiveTransition && yAcceleration > positiveThreshold) {
-                    stepCount++;
-                    stepCountTextView.setText(""+stepCount);
-                    update_steps(dayOfWeek);
-                    insertData();
-                    hasNegativeToPositiveTransition = false;
-                }
-                hasPositiveToNegativeTransition = true;
-            } else {
-                if (hasPositiveToNegativeTransition && yAcceleration < negativeThreshold) {
-                    stepCount++;
-                    stepCountTextView.setText(""+stepCount);
-                    update_steps(dayOfWeek);
-                    insertData();
-                    hasPositiveToNegativeTransition = false;
-                }
-                hasNegativeToPositiveTransition = true;
-            }
-        }
-
-        previousY = yAcceleration;
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        // Do nothing
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        sensorManager.unregisterListener(this);
-    }
-
 
 
     @Override
@@ -433,6 +408,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         dialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
+//                stopForegroundService();
+//                startStopButton.setText("Start");
                 finish();   // destroy this activity
             }
         });
@@ -444,7 +421,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
         dialog.show();
     }
+    @Override
+    protected void onStart()
+    {
+        super.onStart();
+        bringData();
+        bring_barChart();
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();  // Always call the superclass method first
+        update_steps(dayOfWeek);
+        insertData();
+    }
 }
+
+
+
+
+
+
+
 
 
 
