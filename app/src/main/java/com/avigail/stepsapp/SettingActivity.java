@@ -22,8 +22,11 @@ public class SettingActivity extends Activity {
     public static final String Name = "nameKey";
     public static final String MinSteps = "minStepsKey";
 
-    SharedPreferences sharedpreferences;
+    private static final String ALARM_HOUR_KEY = "hour";
+    private static final String ALARM_MINUTE_KEY = "minute";
 
+    SharedPreferences sharedpreferences;
+    TimePicker timerPicker;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,9 +35,7 @@ public class SettingActivity extends Activity {
         txtName= findViewById(R.id.txtName);
         txtMinSteps= findViewById(R.id.txtMinSteps);
 
-        TimePicker timerPicker = findViewById(R.id.timerPicker);
-        int hour = timerPicker.getCurrentHour();
-        int minute = timerPicker.getCurrentMinute();
+        timerPicker = findViewById(R.id.timerPicker);
 
 
         btn1=findViewById(R.id.button);
@@ -43,19 +44,25 @@ public class SettingActivity extends Activity {
         txtName.setText(name);
         String min_steps = sharedpreferences.getString(MinSteps, "");
         txtMinSteps.setText(min_steps);
+        int savedHour = sharedpreferences.getInt(ALARM_HOUR_KEY, 0);
+        int savedMinute = sharedpreferences.getInt(ALARM_MINUTE_KEY, 0);
+        timerPicker.setCurrentHour(savedHour);
+        timerPicker.setCurrentMinute(savedMinute);
+
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String name  = txtName.getText().toString();
                 String minSteps = txtMinSteps.getText().toString();
 
-
+                int hour = timerPicker.getCurrentHour();
+                int minute = timerPicker.getCurrentMinute();
                 SharedPreferences.Editor editor = sharedpreferences.edit();
 
                 editor.putString(Name, name);
                 editor.putString(MinSteps, minSteps);
-                editor.putInt("hour", hour);
-                editor.putInt("minute", minute);
+                editor.putInt(ALARM_HOUR_KEY, hour);
+                editor.putInt(ALARM_MINUTE_KEY, minute);
                 editor.commit();
 
                 Toast.makeText(SettingActivity.this,"Save",Toast.LENGTH_LONG).show();

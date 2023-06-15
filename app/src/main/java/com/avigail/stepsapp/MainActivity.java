@@ -90,7 +90,13 @@ public class MainActivity extends AppCompatActivity{
         String name = sharedPreferences.getString("nameKey", " ");
         txtHello.setText("hello "+ name);
         String minSteps = sharedPreferences.getString("minStepsKey", " ");
-//        NotificationReceiver.setNotification(getApplicationContext());
+        int savedHour = sharedPreferences.getInt("hour", 0); // 0 is the default value if the key is not found
+        int savedMinute = sharedPreferences.getInt("minute", 0);
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        Log.d("mylog","emuHour"+ hour);
+        Log.d("mylog","SetHour"+ savedHour);
+        NotificationReceiver.setNotification(getApplicationContext(),savedHour,savedMinute);
 
         checkIfMyFGServiceRunning();
 
@@ -106,8 +112,8 @@ public class MainActivity extends AppCompatActivity{
 
         findViewById(R.id.btnStratID).setEnabled(false);
         findViewById(R.id.btnStopID).setEnabled(true);
-        Toast.makeText(this, "FG Service Started!", Toast.LENGTH_LONG).show();
-        Log.d("mylog", "FG Service Started!");
+        Toast.makeText(this, "Service Started!", Toast.LENGTH_LONG).show();
+        Log.d("mylog", "Service Started!");
     }
 
     public void stopService(View v)
@@ -119,8 +125,8 @@ public class MainActivity extends AppCompatActivity{
         findViewById(R.id.btnStopID).setEnabled(false);
         stepsPerDay = new int[7];
         bringStepsWeek();
-        Toast.makeText(this, "FG Service Stoped!", Toast.LENGTH_LONG).show();
-        Log.d("mylog", "FG Service Stoped!");
+        Toast.makeText(this, "Service Stoped!", Toast.LENGTH_LONG).show();
+        Log.d("mylog", "Service Stoped!");
     }
 
     private void checkIfMyFGServiceRunning()
