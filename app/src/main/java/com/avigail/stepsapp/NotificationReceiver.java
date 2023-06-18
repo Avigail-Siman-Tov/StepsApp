@@ -1,5 +1,8 @@
 package com.avigail.stepsapp;
 
+import static com.avigail.stepsapp.ForegroundService.stepCount;
+import static com.avigail.stepsapp.MainActivity.TodaySteps;
+
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -10,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
@@ -21,22 +25,33 @@ public class NotificationReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-                // Create a notification channel (required for Android 8.0 Oreo and above)
                 SharedPreferences sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
                 String minSteps = sharedPreferences.getString("minStepsKey", " ");
-                int savedHour = sharedPreferences.getInt("hour", 0); // 0 is the default value if the key is not found
+                int min_steps = Integer.parseInt(minSteps);
+
+                Log.d("mylog","minSteps"+min_steps);
+                Log.d("mylog","today"+TodaySteps);
+                int savedHour = sharedPreferences.getInt("hour", 0);
                 int savedMinute = sharedPreferences.getInt("minute", 0);
-//                if (< Integer.parseInt(minSteps)/2)
-                createNotificationChannel(context);
-                sendNotification(context);
+
+                // Get the current time
+                Calendar currentTime = Calendar.getInstance();
+                int currentHour = currentTime.get(Calendar.HOUR_OF_DAY);
+                int currentMinute = currentTime.get(Calendar.MINUTE);
+
+                // Check if the current time matches the saved time
+                if (currentHour == savedHour && currentMinute == savedMinute && TodaySteps < min_steps) {
+                        createNotificationChannel(context);
+                        sendNotification(context);
+                }
         }
 
         private void sendNotification(Context context) {
                 // Build the notification
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                         .setSmallIcon(R.drawable.baseline_notifications_24)
-                        .setContentTitle("My Notification")
-                        .setContentText("This is a notification at 8 PM in the evening")
+                        .setContentTitle("Warning!")
+                        .setContentText("You walked a few steps, start walking")
                         .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
                 // Show the notification
@@ -44,7 +59,7 @@ public class NotificationReceiver extends BroadcastReceiver {
                 notificationManager.notify(NOTIFICATION_ID, builder.build());
         }
 
-        public static void setNotification(Context context,int hour, int minute) {
+        public static void setNotification(Context context, int hour, int minute) {
                 // Get the current time
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTimeInMillis(System.currentTimeMillis());
@@ -57,11 +72,12 @@ public class NotificationReceiver extends BroadcastReceiver {
                 }
 
                 Intent intent = new Intent(context, NotificationReceiver.class);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(context, hour * 100 + minute, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
                 AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
         }
+
 
 
         private void createNotificationChannel(Context context) {

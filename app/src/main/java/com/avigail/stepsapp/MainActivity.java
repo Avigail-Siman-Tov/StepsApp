@@ -1,8 +1,5 @@
 package com.avigail.stepsapp;
 
-
-import static android.content.ContentValues.TAG;
-
 import static com.avigail.stepsapp.ForegroundService.stepCount;
 
 import androidx.annotation.NonNull;
@@ -11,9 +8,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import android.app.ActivityManager;
-import android.app.AlarmManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -22,7 +19,6 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -38,14 +34,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -58,31 +52,60 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-
-import java.util.Calendar;
-
+import com.google.firebase.firestore.QuerySnapshot;
 
 public class MainActivity extends AppCompatActivity{
     private TextView stepCountTextView, txtHello;
-
+    public static int TodaySteps;
     int[] stepsPerDay = new int[7]; // Array to store steps for each day of the week
-//    int steps_day[]= new int[7];
-
     Calendar calendar = Calendar.getInstance();
-    int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+    int day = calendar.get(Calendar.DAY_OF_WEEK);
+    int min_steps;
 
-    boolean isServiceRunning = false;
+    private ProgressBar progressBar;
+
+
+    private int progress = 0;
+    Button buttonIncrement;
+//    ProgressBar progressBar;
+    TextView textView;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        progressBar = findViewById(R.id.progress_bar);
+        textView = findViewById(R.id.text_view_progress);
+
+
+
+
+//        Button button1 = findViewById(R.id.button1);
+//        Button button2 = findViewById(R.id.button2);
+//
+//
+//        button1.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                // Perform actions for Rule 1 button
+//
+//            }
+//        });
+//
+//        button2.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                // Perform actions for Rule 2 button
+//
+//            }
+//        });
 
         stepCountTextView = findViewById(R.id.stepCountTextView);
         txtHello = findViewById(R.id.txtHello);
@@ -90,26 +113,32 @@ public class MainActivity extends AppCompatActivity{
         String name = sharedPreferences.getString("nameKey", " ");
         txtHello.setText("hello "+ name);
         String minSteps = sharedPreferences.getString("minStepsKey", " ");
+        min_steps = Integer.parseInt(minSteps);
+        progressBar.setMax(min_steps);
+
+
         int savedHour = sharedPreferences.getInt("hour", 0); // 0 is the default value if the key is not found
         int savedMinute = sharedPreferences.getInt("minute", 0);
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
         Log.d("mylog","emuHour"+ hour);
         Log.d("mylog","SetHour"+ savedHour);
+        Log.d("mylog","emuMin"+ minute);
+        Log.d("mylog","SetMin"+ savedMinute);
         NotificationReceiver.setNotification(getApplicationContext(),savedHour,savedMinute);
-
         checkIfMyFGServiceRunning();
-
         bringStepsWeek();
-
     }
 
-
+    private void updateProgressBar() {
+        progressBar.setProgress(TodaySteps);
+        textView.setText(String.valueOf(TodaySteps));
+    }
     public void startService(View v)
     {
         stepCount=0;
         startForegroundService(new Intent(this, ForegroundService.class));
-
         findViewById(R.id.btnStratID).setEnabled(false);
         findViewById(R.id.btnStopID).setEnabled(true);
         Toast.makeText(this, "Service Started!", Toast.LENGTH_LONG).show();
@@ -164,91 +193,59 @@ public class MainActivity extends AppCompatActivity{
         String documentId = stepsDocument.getId();
         steps.put("date", currentDate);
 
-        stepsDocument.set(steps)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        // Document created successfully
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        // Handle any errors that occurred
-                    }
-                });
-
-
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                stepsDocument.set(steps)
+                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                // Document created successfully
+                            }
+                        })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                // Handle any errors that occurred
+                            }
+                        });
+            }
+        });
+        thread.start();
     }
 
-
-
-
-
-
-
-
-//    private void init_steps(int dayOfWeek){
-//
-//        Log.d("mylog", "I am in init");
-//        switch (dayOfWeek) {
-//            case Calendar.SUNDAY:
-//                stepCountTextView.setText(""+ steps_day[0]);
-//                stepCount = steps_day[0];
-//                break;
-//            case Calendar.MONDAY:
-//                stepCountTextView.setText(""+ steps_day[1]);
-//                stepCount = steps_day[1];
-//                break;
-//            case Calendar.TUESDAY:
-//                stepCountTextView.setText(""+ steps_day[2]);
-//                stepCount = steps_day[2];
-//                break;
-//            case Calendar.WEDNESDAY:
-//                stepCountTextView.setText(""+ steps_day[3]);
-//                stepCount = steps_day[3];
-//                break;
-//            case Calendar.THURSDAY:
-//                stepCountTextView.setText(""+ steps_day[4]);
-//                stepCount = steps_day[4];
-//                break;
-//            case Calendar.FRIDAY:
-//                stepCountTextView.setText(""+ steps_day[5]);
-//                stepCount = steps_day[5];
-//                break;
-//            case Calendar.SATURDAY:
-//                stepCountTextView.setText(""+ steps_day[6]);
-//                stepCount = steps_day[6];
-//                break;
-//        }
-//    }
-//    private void update_steps(int dayOfWeek){
-//        String count= stepCountTextView.getText().toString();
-//        count = count.trim();
-//        switch (dayOfWeek) {
-//            case Calendar.SUNDAY:
-//                steps_day[0] = Integer.parseInt(count);
-//                break;
-//            case Calendar.MONDAY:
-//                steps_day[1] = Integer.parseInt(count);
-//                break;
-//            case Calendar.TUESDAY:
-//                steps_day[2] = Integer.parseInt(count);
-//                break;
-//            case Calendar.WEDNESDAY:
-//                steps_day[3] = Integer.parseInt(count);
-//                break;
-//            case Calendar.THURSDAY:
-//                steps_day[4] = Integer.parseInt(count);
-//                break;
-//            case Calendar.FRIDAY:
-//                steps_day[5] = Integer.parseInt(count);
-//                break;
-//            case Calendar.SATURDAY:
-//                steps_day[6] = Integer.parseInt(count);
-//                break;
-//        }
-//    }
+    private void init_steps(int dayOfWeek , int[] stepsPerDay){
+        switch (dayOfWeek) {
+            case Calendar.SUNDAY:
+                stepCountTextView.setText(""+ stepsPerDay[0]);
+                TodaySteps = stepsPerDay[0];
+                break;
+            case Calendar.MONDAY:
+                stepCountTextView.setText(""+ stepsPerDay[1]);
+                TodaySteps = stepsPerDay[1];
+                break;
+            case Calendar.TUESDAY:
+                stepCountTextView.setText(""+ stepsPerDay[2]);
+                TodaySteps = stepsPerDay[2];
+                break;
+            case Calendar.WEDNESDAY:
+                stepCountTextView.setText(""+ stepsPerDay[3]);
+                TodaySteps = stepsPerDay[3];
+                break;
+            case Calendar.THURSDAY:
+                stepCountTextView.setText(""+ stepsPerDay[4]);
+                TodaySteps = stepsPerDay[4];
+                break;
+            case Calendar.FRIDAY:
+                stepCountTextView.setText(""+ stepsPerDay[5]);
+                TodaySteps = stepsPerDay[5];
+                break;
+            case Calendar.SATURDAY:
+                stepCountTextView.setText(""+ stepsPerDay[6]);
+                TodaySteps = stepsPerDay[6];
+                break;
+        }
+    }
 
 private void createBarChart(int[] values) {
     Log.d("mylog","values"+ Arrays.toString(values)) ;
@@ -263,6 +260,7 @@ private void createBarChart(int[] values) {
 
     BarDataSet dataSet = new BarDataSet(entries, "Steps");
     BarData barData = new BarData(dataSet);
+
 
     barChart.getDescription().setText(" ");
 
@@ -286,17 +284,12 @@ private void createBarChart(int[] values) {
     xAxis.setTextSize(12f);
 
     dataSet.setValueTextSize(12f);
-//    dataSet.setDrawValues(false); // Disable drawing values on top of the bars
 
     yAxisLeft.setAxisLineColor(Color.TRANSPARENT);
     yAxisLeft.setAxisLineWidth(0f);
     yAxisLeft.setGridColor(Color.TRANSPARENT);
 
     yAxisRight.setEnabled(false); // Disable the right-side axis
-
-//    yAxisRight.setAxisLineColor(Color.TRANSPARENT);
-//    yAxisRight.setAxisLineWidth(0f);
-//    yAxisRight.setGridColor(Color.TRANSPARENT);
 
     xAxis.setAxisLineColor(Color.TRANSPARENT);
     xAxis.setAxisLineWidth(0f);
@@ -305,8 +298,6 @@ private void createBarChart(int[] values) {
     barChart.setData(barData);
     barChart.invalidate();
 }
-
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -374,8 +365,7 @@ private void createBarChart(int[] values) {
         dialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-//                stopForegroundService();
-//                startStopButton.setText("Start");
+//                stopService(v);
                 finish();   // destroy this activity
             }
         });
@@ -395,46 +385,63 @@ private void createBarChart(int[] values) {
         calendar.add(Calendar.DAY_OF_WEEK, 6); // Set to the last day of the week
         Date endDate = calendar.getTime();
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        CollectionReference stepsCollectionRef = db.collection("steps");
-        Query query = stepsCollectionRef
-                .whereGreaterThanOrEqualTo("date", formatDate(startDate))
-                .whereLessThanOrEqualTo("date", formatDate(endDate));
+//        final int[] stepsPerDay = new int[7]; // Assuming you have an array to store the steps count per day
 
-        query.get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                FirebaseFirestore db = FirebaseFirestore.getInstance();
+                CollectionReference stepsCollectionRef = db.collection("steps");
+                Query query = stepsCollectionRef
+                        .whereGreaterThanOrEqualTo("date", formatDate(startDate))
+                        .whereLessThanOrEqualTo("date", formatDate(endDate));
 
-                for (QueryDocumentSnapshot document : task.getResult()) {
-                    String documentDate = document.getString("date");
-                    if (documentDate != null) {
-                        int dayOfWeek = getDayOfWeekFromDate(documentDate);
-                        int steps = 0;
+                query.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
 
-                        if (document.contains("steps_count")) {
-                            steps = document.getLong("steps_count").intValue(); // Assuming "steps_count" is a field in your document
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                String documentDate = document.getString("date");
+                                if (documentDate != null) {
+                                    int dayOfWeek = getDayOfWeekFromDate(documentDate);
+                                    int steps = 0;
+
+                                    if (document.contains("steps_count")) {
+                                        steps = document.getLong("steps_count").intValue(); // Assuming "steps_count" is a field in your document
+                                    } else {
+                                        Log.d("mylog", "Missing steps_count field in document: " + document.getId());
+                                    }
+
+                                    if (dayOfWeek >= Calendar.SUNDAY && dayOfWeek <= Calendar.SATURDAY) {
+                                        stepsPerDay[dayOfWeek - 1] += steps; // Increment steps for the corresponding day
+                                    } else {
+                                        Log.d("mylog", "Invalid dayOfWeek value for document: " + document.getId());
+                                    }
+                                } else {
+                                    Log.d("mylog", "Missing date field in document: " + document.getId());
+                                }
+                            }
+
+                            Log.d("mylog", "arrayDay: " + Arrays.toString(stepsPerDay));
+                            // Perform any UI updates or further processing using the stepsPerDay array
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    init_steps(day,stepsPerDay);
+                                    updateProgressBar();
+                                    createBarChart(stepsPerDay);
+                                }
+                            });
                         } else {
-                            Log.d("mylog", "Missing steps_count field in document: " + document.getId());
+                            Log.e("Firestore", "Error getting documents: ", task.getException());
                         }
-
-                        if (dayOfWeek >= Calendar.SUNDAY && dayOfWeek <= Calendar.SATURDAY) {
-                            stepsPerDay[dayOfWeek - 1] += steps; // Increment steps for the corresponding day
-                        } else {
-                            Log.d("mylog", "Invalid dayOfWeek value for document: " + document.getId());
-                        }
-                    } else {
-                        Log.d("mylog", "Missing date field in document: " + document.getId());
                     }
-                }
-
-                Log.d("mylog", "arrayDay: " + Arrays.toString(stepsPerDay));
-                createBarChart(stepsPerDay);
-                // Process the stepsPerDay array containing the count for each day
-                // You can display the counts, store them, or perform further calculations
-            } else {
-                Log.e("Firestore", "Error getting documents: ", task.getException());
+                });
             }
         });
 
+        thread.start();
 
     }
 
@@ -458,17 +465,22 @@ private void createBarChart(int[] values) {
         return -1; // Invalid day
     }
 
-
     @Override
-    protected void onStart()
-    {
-        super.onStart();
+    protected void onResume(){
+        super.onResume();
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+        int savedHour = sharedPreferences.getInt("hour", 0); // 0 is the default value if the key is not found
+        int savedMinute = sharedPreferences.getInt("minute", 0);
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+        Log.d("mylog","emuHour"+ hour);
+        Log.d("mylog","SetHour"+ savedHour);
+        Log.d("mylog","emuMin"+ minute);
+        Log.d("mylog","SetMin"+ savedMinute);
+        NotificationReceiver.setNotification(getApplicationContext(),savedHour,savedMinute);
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();  // Always call the superclass method first
-    }
 }
 
 

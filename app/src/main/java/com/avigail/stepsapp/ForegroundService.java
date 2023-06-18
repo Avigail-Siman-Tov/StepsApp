@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -17,6 +18,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
+
+import java.util.Calendar;
 
 public class ForegroundService extends Service implements SensorEventListener {
     private static final int NOTIFICATION_ID = 1;
@@ -43,6 +46,13 @@ public class ForegroundService extends Service implements SensorEventListener {
         } else {
             Toast.makeText(this, "Accelerometer sensor not available", Toast.LENGTH_SHORT).show();
         }
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+        int savedHour = sharedPreferences.getInt("hour", 0); // 0 is the default value if the key is not found
+        int savedMinute = sharedPreferences.getInt("minute", 0);
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+        NotificationReceiver.setNotification(getApplicationContext(),savedHour,savedMinute);
     }
 
     public static final int FG_NOTIFICATION_ID = 111;
@@ -80,8 +90,8 @@ public class ForegroundService extends Service implements SensorEventListener {
 
         // create Notification
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("FG Service Running...")
-                .setContentText("Tap to Stop this FG Service!")
+                .setContentTitle("Service Running...")
+                .setContentText("Tap to Stop this Service!")
                 .setSmallIcon(R.drawable.baseline_notifications_24)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 //.setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -90,10 +100,15 @@ public class ForegroundService extends Service implements SensorEventListener {
                 .build();
 
         startForeground(FG_NOTIFICATION_ID, notification);
+
+//        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+//        int savedHour = sharedPreferences.getInt("hour", 0); // 0 is the default value if the key is not found
+//        int savedMinute = sharedPreferences.getInt("minute", 0);
+//        Calendar calendar = Calendar.getInstance();
+//        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+//        int minute = calendar.get(Calendar.MINUTE);
+//        NotificationReceiver.setNotification(getApplicationContext(),savedHour,savedMinute);
     }
-
-
-
 
 
     @Override
@@ -103,11 +118,6 @@ public class ForegroundService extends Service implements SensorEventListener {
         isRunning = false;  // stop thread job
 
     }
-
-
-
-
-
 
 
     private void stopForegroundService() {

@@ -14,35 +14,109 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:paddingTop="30dp"
-        android:text="hello"
+        android:text="Hello"
         android:textSize="30dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btn_today"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="207dp"
+            android:layout_height="match_parent"
+            android:background="@color/white"
+            android:text="TODAY"
+            android:textColor="#3F51B5"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_week"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="208dp"
+            android:layout_height="wrap_content"
+            android:background="@color/white"
+            android:text="WEEK"
+            android:textColor="#3F51B5"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                style="@style/CircularDeterminateProgressBar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_centerInParent="true"
+                android:progressDrawable="@drawable/circle"
+                android:indeterminate="false"
+                android:progress="0" />
+
+            <TextView
+                android:id="@+id/text_view_progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:layout_centerInParent="true"
+                android:text="0" />
+
+        </RelativeLayout>
+
+    </FrameLayout>
+
 
     <TextView
         android:id="@+id/stepCountTextView"
-        android:layout_width="208dp"
-        android:layout_height="69dp"
+        android:layout_width="match_parent"
+        android:layout_height="34dp"
         android:paddingLeft="10dp"
         android:text="0"
         android:textSize="30sp" />
 
     <com.github.mikephil.charting.charts.BarChart
         android:id="@+id/barChart"
-        android:layout_width="match_parent"
-        android:layout_height="357dp" />
+        android:layout_width="387dp"
+        android:layout_height="238dp"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp">
 
-    <Button
-        android:id="@+id/btnStratID"
+    </com.github.mikephil.charting.charts.BarChart>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="startService"
-        android:text="Start" />
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/btnStopID"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="stopService"
-        android:text="Stop" />
+        <Button
+            android:id="@+id/btnStratID"
+            android:layout_width="180dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="10dp"
+            android:onClick="startService"
+            android:text="Start" />
+
+        <Button
+            android:id="@+id/btnStopID"
+            android:layout_width="180dp"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="15dp"
+            android:onClick="stopService"
+            android:text="Stop"/>
+
+    </LinearLayout>
 
 
 </LinearLayout>
