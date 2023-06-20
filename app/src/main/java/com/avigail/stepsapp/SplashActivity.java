@@ -8,7 +8,6 @@ import android.os.Handler;
 import android.widget.ImageView;
 
 public class SplashActivity extends AppCompatActivity {
-
     private static final int SPLASH_TIME_OUT = 2000; // 2 seconds
 
     @Override

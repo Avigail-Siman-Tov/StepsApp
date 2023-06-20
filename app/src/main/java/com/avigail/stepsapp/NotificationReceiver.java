@@ -1,10 +1,8 @@
 package com.avigail.stepsapp;
 
-import static com.avigail.stepsapp.ForegroundService.stepCount;
 import static com.avigail.stepsapp.MainActivity.TodaySteps;
 
 import android.app.AlarmManager;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -23,14 +21,13 @@ public class NotificationReceiver extends BroadcastReceiver {
         private static final String CHANNEL_ID = "my_channel";
         private static final int NOTIFICATION_ID = 1;
 
+        //check if the time of alarm come and if the TodaySteps < min_steps we sent notfitication
         @Override
         public void onReceive(Context context, Intent intent) {
                 SharedPreferences sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
                 String minSteps = sharedPreferences.getString("minStepsKey", " ");
                 int min_steps = Integer.parseInt(minSteps);
 
-                Log.d("mylog","minSteps"+min_steps);
-                Log.d("mylog","today"+TodaySteps);
                 int savedHour = sharedPreferences.getInt("hour", 0);
                 int savedMinute = sharedPreferences.getInt("minute", 0);
 
@@ -46,6 +43,7 @@ public class NotificationReceiver extends BroadcastReceiver {
                 }
         }
 
+        //this function send notfitication
         private void sendNotification(Context context) {
                 // Build the notification
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
@@ -59,6 +57,7 @@ public class NotificationReceiver extends BroadcastReceiver {
                 notificationManager.notify(NOTIFICATION_ID, builder.build());
         }
 
+        //the function do the notfitication to send in the time that in the setting
         public static void setNotification(Context context, int hour, int minute) {
                 // Get the current time
                 Calendar calendar = Calendar.getInstance();
@@ -78,8 +77,7 @@ public class NotificationReceiver extends BroadcastReceiver {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
         }
 
-
-
+        //the function create notification Channel
         private void createNotificationChannel(Context context) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         CharSequence name = "My Channel";
