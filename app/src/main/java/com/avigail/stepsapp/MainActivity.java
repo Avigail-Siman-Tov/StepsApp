@@ -1,14 +1,12 @@
 package com.avigail.stepsapp;
 
 import static com.avigail.stepsapp.ForegroundService.stepCount;
-import static com.avigail.stepsapp.TodayFragment.progressBar;
-import static com.avigail.stepsapp.TodayFragment.stepCountTextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
-import androidx.viewpager.widget.PagerAdapter;
-import androidx.viewpager.widget.ViewPager;
+
+import android.app.ActivityManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.view.View;
@@ -32,8 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
-import com.google.android.material.tabs.TabLayout;
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
@@ -52,53 +56,65 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import androidx.fragment.app.Fragment;
-import androidx.viewpager2.widget.ViewPager2;
 
 public class MainActivity extends AppCompatActivity {
     public static int TodaySteps;
     int[] stepsPerDay = new int[7]; // Array to store steps for each day of the week
     Calendar calendar = Calendar.getInstance();
     int day = calendar.get(Calendar.DAY_OF_WEEK);
-    TabLayout tabLayout;
-    ViewPager viewPager;
+    TextView txtHello,txtGoal;
+    int min_steps;
+    ProgressBar progressBar;
+    TextView stepCountTextView ;
+    boolean internet;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bringStepsWeek();
-        //create tab of fragment of today and week
-        tabLayout = findViewById(R.id.tabLayout);
-        viewPager = findViewById(R.id.viewPager);
-        tabLayout.addTab(tabLayout.newTab().setText("TODAY"));
-        tabLayout.addTab(tabLayout.newTab().setText("WEEK"));
-        tabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
+        internet = isNetworkAvailable();
+        if(internet) {
+            bringStepsWeek();
+        }
 
-        final MyAdapter adapter = new MyAdapter(this, getSupportFragmentManager(), tabLayout.getTabCount());
-        viewPager.setAdapter(adapter);
-
-
-        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                if (viewPager != null) {
-                    viewPager.setCurrentItem(tab.getPosition());
-                }
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-                // Handle tab unselected event if needed
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-                // Handle tab reselected event if needed
-            }
-        });
+        progressBar = findViewById(R.id.progress_bar);
+        stepCountTextView = findViewById(R.id.stepCountTextView);
+        txtHello = findViewById(R.id.txtHello);
+        txtGoal = findViewById(R.id.txtMinSteps);
+        data_shared_preference();
+        checkIfMyFGServiceRunning();
         send_notfitication();
 
+    }
+    //the function bring the setting data from sharedpreference
+    private void data_shared_preference(){
+        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+        String name = sharedPreferences.getString("nameKey", " ");
+        String minSteps = sharedPreferences.getString("minStepsKey", "30");
+        txtHello.setText("Hello " + name);
+        txtGoal.setText("Goal: "+ minSteps);
+        min_steps = Integer.parseInt(minSteps);
+        progressBar.setMax(min_steps);
+    }
+    //this function check if the forgroun servies is running
+    private void checkIfMyFGServiceRunning() {
+        boolean isRunning = false;
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (ForegroundService.class.getName().equals(service.service.getClassName())) {
+                isRunning = true;
+                break;
+            }
+        }
+
+        if (isRunning) {
+            findViewById(R.id.btnStratID).setEnabled(false);
+            findViewById(R.id.btnStopID).setEnabled(true);
+        } else {
+            findViewById(R.id.btnStratID).setEnabled(true);
+            findViewById(R.id.btnStopID).setEnabled(false);
+        }
     }
 
     //The method is start the forground servies
@@ -115,13 +131,18 @@ public class MainActivity extends AppCompatActivity {
     //The method is stop the forground servies
     public void stopService(View v)
     {
-        insertData_steps();
+        internet = isNetworkAvailable();
+        if(internet) {
+            insertData_steps();
+        }
         stopService(new Intent(this, ForegroundService.class));
 
         findViewById(R.id.btnStratID).setEnabled(true);
         findViewById(R.id.btnStopID).setEnabled(false);
         stepsPerDay = new int[7];
-        bringStepsWeek();
+        if(internet) {
+            bringStepsWeek();
+        }
         Toast.makeText(this, "Service Stoped!", Toast.LENGTH_LONG).show();
         Log.d("mylog", "Service Stoped!");
     }
@@ -342,7 +363,6 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         int savedHour = sharedPreferences.getInt("hour", 8); // 0 is the default value if the key is not found
         int savedMinute = sharedPreferences.getInt("minute", 0);
-        Calendar calendar = Calendar.getInstance();
         NotificationReceiver.setNotification(getApplicationContext(),savedHour,savedMinute);
     }
 

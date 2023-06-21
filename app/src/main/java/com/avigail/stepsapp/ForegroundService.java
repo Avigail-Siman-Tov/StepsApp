@@ -16,8 +16,6 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.core.app.NotificationCompat;
-
-
 public class ForegroundService extends Service implements SensorEventListener {
 
     private static final int NOTIFICATION_ID = 1;
